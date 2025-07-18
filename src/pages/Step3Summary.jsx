@@ -58,7 +58,7 @@ function Step3Summary() {
 const handleLoginRedirect = () => {
   const currentUrl = window.location.href;
   const returnTo = encodeURIComponent(currentUrl);
-  window.location.href = `/account/login?return_url=${returnTo}`;
+  window.location.href = `/account/login?return_to=${returnTo}`;
 };
 
   const handleCreateProduct = async () => {
