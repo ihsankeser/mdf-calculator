@@ -34,34 +34,49 @@ function Step3Summary() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerId, setCustomerId] = useState(null);
+  const [loading, setLoading] = useState(false);
   const svgRef = useRef(null);
 
   const finalTotalPrice = productType === "digital" ? 15 : (totalPrice ?? 0);
 
   useEffect(() => {
-  if (typeof window !== "undefined" && window.shopifyCustomer) {
-    setIsLoggedIn(true);
-    setCustomerName(`${window.shopifyCustomer.first_name} ${window.shopifyCustomer.last_name}`);
-    setCustomerId(window.shopifyCustomer.id);
-  } else {
-    setIsLoggedIn(false);
-  }
-}, []);
-
+    try {
+      if (typeof window !== "undefined" && window.shopifyCustomer && window.shopifyCustomer.id) {
+        setIsLoggedIn(true);
+        setCustomerName(`${window.shopifyCustomer.first_name} ${window.shopifyCustomer.last_name}`);
+        setCustomerId(window.shopifyCustomer.id);
+      } else {
+        setIsLoggedIn(false);
+      }
+    } catch (error) {
+      console.error("? Failed to read Shopify customer:", error);
+      setIsLoggedIn(false);
+    }
+  }, []);
 
   const generateDrawingImage = async () => {
     if (!svgRef.current) return null;
-    const canvas = await html2canvas(svgRef.current);
+    const canvas = await html2canvas(svgRef.current, {
+      scale: 0.8,
+    });
     return canvas.toDataURL("image/png");
   };
 
-const handleLoginRedirect = () => {
-  const currentUrl = window.location.href;
-  const returnTo = encodeURIComponent(currentUrl);
-  window.location.href = `/account/login?return_to=${returnTo}`;
-};
+  const handleLoginRedirect = () => {
+    const currentUrl = window.location.href;
+    const returnTo = encodeURIComponent(currentUrl);
+    window.location.href = `https://birdeco.com/account/login?return_to=${returnTo}`;
+  };
 
   const handleCreateProduct = async () => {
+    if (loading) return;
+    if (!wallWidth || !wallHeight || !rows || !columns || !totalMetre || !finalTotalPrice) {
+      alert("Please complete your wall design before creating the product.");
+      return;
+    }
+
+    setLoading(true);
+
     const image = await generateDrawingImage();
     const shopifyDesc = `Design your dream wall with our MDF Wall Panel Calculator — a powerful tool that lets you customize premium paneling styles like Board & Batten, Shaker, Half-Wall, and MDF Paneling to perfectly match your space. Whether you're working on a DIY renovation or a professional design project, simply enter your wall dimensions and instantly visualize layout options, quantity needs, and price estimates.
 
@@ -111,9 +126,12 @@ This product was created using our MDF Wall Panel Calculator. You can design you
       const result = await createShopifyProduct(productData);
       console.log("? Shopify product created:", result);
       setSubmitted(true);
+      // window.location.href = `https://birdeco.com/products/${result.handle}`; // opsiyonel yönlendirme
     } catch (err) {
       console.error("? Failed to create product:", err);
       alert("Failed to create product. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -221,20 +239,21 @@ This product was created using our MDF Wall Panel Calculator. You can design you
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
           {isLoggedIn ? (
-  <button
-    onClick={handleCreateProduct}
-    className="bg-black text-white px-6 py-3 rounded hover:bg-gray-800"
-  >
-    Create Product on Shopify
-  </button>
-) : (
-  <button
-    onClick={handleLoginRedirect}
-    className="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700"
-  >
-    Login to continue
-  </button>
-)}
+            <button
+              onClick={handleCreateProduct}
+              disabled={loading}
+              className={`bg-black text-white px-6 py-3 rounded hover:bg-gray-800 ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              {loading ? "Creating..." : "Create Product on Shopify"}
+            </button>
+          ) : (
+            <button
+              onClick={handleLoginRedirect}
+              className="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700"
+            >
+              Login to continue
+            </button>
+          )}
         </div>
       </div>
     </div>
