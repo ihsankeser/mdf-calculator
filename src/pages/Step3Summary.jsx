@@ -58,9 +58,11 @@ function Step3Summary() {
     return canvas.toDataURL("image/png");
   };
 
-  const handleLoginRedirect = () => {
-    window.location.href = "/account/login?return_url=/pages/new-mdf-calculator";
-  };
+const handleLoginRedirect = () => {
+  const currentUrl = window.location.href;
+  const returnTo = encodeURIComponent(currentUrl);
+  window.location.href = `/account/login?return_url=${returnTo}`;
+};
 
   const handleCreateProduct = async () => {
     const image = await generateDrawingImage();
@@ -222,20 +224,20 @@ This product was created using our MDF Wall Panel Calculator. You can design you
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
           {isLoggedIn ? (
-            <button
-              onClick={handleCreateProduct}
-              className="bg-black text-white px-6 py-3 rounded hover:bg-gray-800"
-            >
-              Create Product on Shopify
-            </button>
-          ) : (
-            <button
-              onClick={handleLoginRedirect}
-              className="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700"
-            >
-              Login to Continue
-            </button>
-          )}
+  <button
+    onClick={handleCreateProduct}
+    className="bg-black text-white px-6 py-3 rounded hover:bg-gray-800"
+  >
+    Create Product on Shopify
+  </button>
+) : (
+  <button
+    onClick={handleLoginRedirect}
+    className="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700"
+  >
+    Login to continue
+  </button>
+)}
         </div>
       </div>
     </div>

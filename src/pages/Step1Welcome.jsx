@@ -17,9 +17,6 @@ function Step1Welcome() {
           Başla
         </button>
 		
-		<p className="text-green-600 font-semibold text-xl">
-  ✅ Shopify ürünü başarıyla oluşturuldu!
-</p>
 		
       </div>
     </div>
