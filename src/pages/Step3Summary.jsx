@@ -75,9 +75,9 @@ function Step3Summary() {
   };
 
   const handleLoginRedirect = () => {
-    // Kullanýcýyý Shopify login sayfasýna yönlendir
-    navigate("/login", { state: { from: "/step3" } });
-  };
+  window.location.href = "https://birdeco.com/account/login?return_url=/pages/new-mdf-calculator";
+};
+
 
   if (submitted) {
     return (
