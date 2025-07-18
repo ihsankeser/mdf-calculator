@@ -39,18 +39,15 @@ function Step3Summary() {
   const finalTotalPrice = productType === "digital" ? 15 : (totalPrice ?? 0);
 
   useEffect(() => {
-    fetch("/account.json")
-      .then(res => res.json())
-      .then(data => {
-        if (data.customer) {
-          setIsLoggedIn(true);
-          setCustomerName(`${data.customer.first_name} ${data.customer.last_name}`);
-          setCustomerId(data.customer.id);
-        } else {
-          setIsLoggedIn(false);
-        }
-      });
-  }, []);
+  if (typeof window !== "undefined" && window.shopifyCustomer) {
+    setIsLoggedIn(true);
+    setCustomerName(`${window.shopifyCustomer.first_name} ${window.shopifyCustomer.last_name}`);
+    setCustomerId(window.shopifyCustomer.id);
+  } else {
+    setIsLoggedIn(false);
+  }
+}, []);
+
 
   const generateDrawingImage = async () => {
     if (!svgRef.current) return null;
