@@ -1,12 +1,19 @@
-// Step3Summary.jsx – Geliþmiþ versiyon
-
 import { useContext, useState, useRef, useEffect } from "react";
 import DesignContext from "../contexts/DesignContext";
 import { useNavigate } from "react-router-dom";
 import WallPreview from "../contexts/WallPreview";
 import { createShopifyProduct } from "../utils/createShopifyProduct";
 import html2canvas from "html2canvas";
-import { Package, FileText, Ruler, MoveVertical, Rows, Columns, Layout, ArrowLeft } from "lucide-react";
+import {
+  Package,
+  FileText,
+  Ruler,
+  MoveVertical,
+  Rows,
+  Columns,
+  Layout,
+  ArrowLeft
+} from "lucide-react";
 
 function Step3Summary() {
   const navigate = useNavigate();
@@ -21,25 +28,75 @@ function Step3Summary() {
     productType,
     setProductType,
     heightOption,
-    user,
   } = useContext(DesignContext);
 
   const [submitted, setSubmitted] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const [customerId, setCustomerId] = useState(null);
   const svgRef = useRef(null);
+
   const finalTotalPrice = productType === "digital" ? 15 : (totalPrice ?? 0);
+
+  useEffect(() => {
+    fetch("/account.json")
+      .then(res => res.json())
+      .then(data => {
+        if (data.customer) {
+          setIsLoggedIn(true);
+          setCustomerName(`${data.customer.first_name} ${data.customer.last_name}`);
+          setCustomerId(data.customer.id);
+        } else {
+          setIsLoggedIn(false);
+        }
+      });
+  }, []);
 
   const generateDrawingImage = async () => {
     if (!svgRef.current) return null;
     const canvas = await html2canvas(svgRef.current);
-    return canvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, "");
+    return canvas.toDataURL("image/png");
+  };
+
+  const handleLoginRedirect = () => {
+    window.location.href = "/account/login?return_url=/pages/new-mdf-calculator";
   };
 
   const handleCreateProduct = async () => {
-    const base64Image = await generateDrawingImage();
+    const image = await generateDrawingImage();
+    const shopifyDesc = `Design your dream wall with our MDF Wall Panel Calculator — a powerful tool that lets you customize premium paneling styles like Board & Batten, Shaker, Half-Wall, and MDF Paneling to perfectly match your space. Whether you're working on a DIY renovation or a professional design project, simply enter your wall dimensions and instantly visualize layout options, quantity needs, and price estimates.
+
+All our wall panels are made from high-quality raw MDF and are ready for your choice of finish. Explore timeless and modern looks with our easy-to-use calculator and create elegant, tailored walls for living rooms, bedrooms, hallways, and more.
+
+? Tailored to your exact wall size
+? Choose from multiple panel styles
+? Instant design preview and pricing
+? Ideal for home DIYers and interior designers
+? Made to measure and shipped to your door
+
+This product was created using our MDF Wall Panel Calculator. You can design your own custom wall panel layout quickly and for free by entering your wall dimensions through the link below. Choose from a variety of styles — including MDF Paneling, Shaker, Board & Batten, and Half-Wall designs — and instantly visualize and order a personalized wall kit that perfectly fits your space.`;
 
     const productData = {
-      wallWidth,
-      wallHeight,
+      title: `Personalized MDF Wall Panel Design – Created for ${customerName}`,
+      body_html: `
+        <p>${shopifyDesc}</p>
+        <h2>?? Wall Design Summary</h2>
+        <ul>
+          <li>?? Wall Dimensions: ${wallWidth}×${wallHeight} cm</li>
+          <li>?? Panel Type: ${panelType}</li>
+          <li>?? Panel Layout: ${rows}×${columns}</li>
+          <li>?? Total Molding Length: ${totalMetre.toFixed(2)} m</li>
+          <li>?? Product Type: ${productType === "digital" ? "Digital" : "Physical"}</li>
+        </ul>
+      `,
+      vendor: "Birdeco",
+      product_type: "Custom MDF",
+      tags: [
+        "mdf wall panels", "custom wall panels", "diy wall paneling", "wall panel calculator",
+        "wall panel design tool", "decorative wall panels", "wall panel layout planner",
+        "made to measure wall panels", "interior wall panel ideas", "buy mdf wall panels online"
+      ],
+      images: image ? [{ attachment: image }] : [],
       variants: [
         {
           price: finalTotalPrice.toFixed(2),
@@ -48,35 +105,17 @@ function Step3Summary() {
           inventory_quantity: 1,
         },
       ],
+      published: true,
     };
 
     try {
-      const response = await fetch("http://localhost:3000/api/create-product", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productData,
-          base64Image,
-          customerName: user.name,
-        }),
-      });
-
-      const result = await response.json();
-      if (result?.product?.id) {
-        setSubmitted(true);
-        window.location.href = `https://birdeco.myshopify.com/admin/products/${result.product.id}`;
-      } else {
-        throw new Error("Shopify yanýtý beklenen formatta deðil.");
-      }
+      const result = await createShopifyProduct(productData);
+      console.log("? Shopify product created:", result);
+      setSubmitted(true);
     } catch (err) {
-      console.error("Failed to create product:", err);
+      console.error("? Failed to create product:", err);
       alert("Failed to create product. Please try again.");
     }
-  };
-
-  const handleLoginRedirect = () => {
-    // Kullanýcýyý Shopify login sayfasýna yönlendir
-    navigate("/login", { state: { from: "/step3" } });
   };
 
   if (submitted) {
@@ -100,7 +139,6 @@ function Step3Summary() {
       <div className="w-full md:w-3/5">
         <WallPreview svgRef={svgRef} />
       </div>
-
       <div className="w-full md:w-2/5 space-y-6">
         <h2 className="text-xl font-bold">Order Summary</h2>
 
@@ -183,19 +221,19 @@ function Step3Summary() {
           >
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
-          {!user?.name ? (
-            <button
-              onClick={handleLoginRedirect}
-              className="bg-teal-600 text-white px-6 py-3 rounded hover:bg-teal-700"
-            >
-              Login to Continue
-            </button>
-          ) : (
+          {isLoggedIn ? (
             <button
               onClick={handleCreateProduct}
               className="bg-black text-white px-6 py-3 rounded hover:bg-gray-800"
             >
               Create Product on Shopify
+            </button>
+          ) : (
+            <button
+              onClick={handleLoginRedirect}
+              className="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700"
+            >
+              Login to Continue
             </button>
           )}
         </div>
