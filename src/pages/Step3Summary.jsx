@@ -19,15 +19,23 @@ function Step3Summary() {
   const navigate = useNavigate();
   const {
     wallWidth,
+    setWallWidth,
     wallHeight,
+    setWallHeight,
     panelType,
+    setPanelType,
     rows,
+    setRows,
     columns,
+    setColumns,
     totalMetre,
+    setTotalMetre,
     totalPrice,
+    setTotalPrice,
     productType,
     setProductType,
     heightOption,
+    setHeightOption
   } = useContext(DesignContext);
 
   const [submitted, setSubmitted] = useState(false);
@@ -77,58 +85,84 @@ function Step3Summary() {
 
     setLoading(true);
 
-    const image = await generateDrawingImage();
-    const shopifyDesc = `Design your dream wall with our MDF Wall Panel Calculator — a powerful tool that lets you customize premium paneling styles like Board & Batten, Shaker, Half-Wall, and MDF Paneling to perfectly match your space. Whether you're working on a DIY renovation or a professional design project, simply enter your wall dimensions and instantly visualize layout options, quantity needs, and price estimates.
-
-All our wall panels are made from high-quality raw MDF and are ready for your choice of finish. Explore timeless and modern looks with our easy-to-use calculator and create elegant, tailored walls for living rooms, bedrooms, hallways, and more.
-
-? Tailored to your exact wall size
-? Choose from multiple panel styles
-? Instant design preview and pricing
-? Ideal for home DIYers and interior designers
-? Made to measure and shipped to your door
-
-This product was created using our MDF Wall Panel Calculator. You can design your own custom wall panel layout quickly and for free by entering your wall dimensions through the link below. Choose from a variety of styles — including MDF Paneling, Shaker, Board & Batten, and Half-Wall designs — and instantly visualize and order a personalized wall kit that perfectly fits your space.`;
-
-    const productData = {
-      title: `Personalized MDF Wall Panel Design – Created for ${customerName}`,
-      body_html: `
-        <p>${shopifyDesc}</p>
-        <h2>?? Wall Design Summary</h2>
-        <ul>
-          <li>?? Wall Dimensions: ${wallWidth}×${wallHeight} cm</li>
-          <li>?? Panel Type: ${panelType}</li>
-          <li>?? Panel Layout: ${rows}×${columns}</li>
-          <li>?? Total Molding Length: ${totalMetre.toFixed(2)} m</li>
-          <li>?? Product Type: ${productType === "digital" ? "Digital" : "Physical"}</li>
-        </ul>
-      `,
-      vendor: "Birdeco",
-      product_type: "Custom MDF",
-      tags: [
-        "mdf wall panels", "custom wall panels", "diy wall paneling", "wall panel calculator",
-        "wall panel design tool", "decorative wall panels", "wall panel layout planner",
-        "made to measure wall panels", "interior wall panel ideas", "buy mdf wall panels online"
-      ],
-      images: image ? [{ attachment: image }] : [],
-      variants: [
-        {
-          price: finalTotalPrice.toFixed(2),
-          sku: `mdf-${wallWidth}x${wallHeight}-${rows}x${columns}`,
-          inventory_management: "shopify",
-          inventory_quantity: 1,
-        },
-      ],
-      published: true,
-    };
-
     try {
+      const image = await generateDrawingImage();
+
+      const shopifyDesc = `Design your dream wall with our MDF Wall Panel Calculator — a powerful tool that lets you customize premium paneling styles like Board & Batten, Shaker, Half-Wall, and MDF Paneling to perfectly match your space.`;
+
+      const productData = {
+        title: `Personalized MDF Wall Panel Design – Created for ${customerName}`,
+        body_html: `
+          <p>${shopifyDesc}</p>
+          <h2>?? Wall Design Summary</h2>
+          <ul>
+            <li>?? Wall Dimensions: ${wallWidth}×${wallHeight} cm</li>
+            <li>?? Panel Type: ${panelType}</li>
+            <li>?? Panel Layout: ${rows}×${columns}</li>
+            <li>?? Total Molding Length: ${totalMetre.toFixed(2)} m</li>
+            <li>??? Product Type: ${productType === "digital" ? "Digital" : "Physical"}</li>
+          </ul>
+        `,
+        vendor: "Birdeco",
+        product_type: "Custom MDF",
+        tags: [
+          "mdf wall panels", "custom wall panels", "diy wall paneling", "wall panel calculator",
+          "wall panel design tool", "decorative wall panels", "wall panel layout planner",
+          "made to measure wall panels", "interior wall panel ideas", "buy mdf wall panels online"
+        ],
+        images: image ? [{ attachment: image }] : [],
+        variants: [
+          {
+            price: finalTotalPrice.toFixed(2),
+            sku: `mdf-${wallWidth}x${wallHeight}-${rows}x${columns}`,
+            inventory_management: "shopify",
+            inventory_quantity: 1,
+          },
+        ],
+        published: true,
+      };
+
       const result = await createShopifyProduct(productData);
-      console.log("? Shopify product created:", result);
-      setSubmitted(true);
-      // window.location.href = `https://birdeco.com/products/${result.handle}`; // opsiyonel yönlendirme
+      console.log("? Shopify ürün oluþturuldu:", result);
+
+      // ? Koleksiyona ekle
+      const collectionId = "454212223196";
+      try {
+        await fetch("/api/add-to-collection", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            productId: result.product.id,
+            collectionId: collectionId,
+          }),
+        });
+        console.log("? Koleksiyona eklendi");
+      } catch (e) {
+        console.warn("? Koleksiyona eklenemedi:", e);
+      }
+
+      // ?? Temizlik
+      localStorage.removeItem("designData");
+      sessionStorage.clear();
+      setWallWidth(0);
+      setWallHeight(0);
+      setRows(1);
+      setColumns(1);
+      setTotalMetre(0);
+      setTotalPrice(0);
+      setPanelType("");
+      setProductType("physical");
+      setHeightOption("full");
+
+      // ?? Yönlendirme
+      if (result?.product?.handle) {
+        window.location.href = `https://birdeco.com/products/${result.product.handle}`;
+      } else {
+        alert("Ürün oluþturuldu ancak yönlendirme yapýlamadý.");
+      }
+
     } catch (err) {
-      console.error("? Failed to create product:", err);
+      console.error("? Ürün oluþturulamadý:", err);
       alert("Failed to create product. Please try again.");
     } finally {
       setLoading(false);
