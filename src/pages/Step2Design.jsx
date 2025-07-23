@@ -1,192 +1,136 @@
-import { useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import DesignContext from "../contexts/DesignContext";
+import { useDesign } from "../contexts/DesignContext";
 import WallPreview from "../contexts/WallPreview";
+import {
+  FaRulerCombined,
+  FaExpandArrowsAlt,
+  FaThLarge,
+  FaMoneyBillWave,
+} from "react-icons/fa";
 
-function Step2Design() {
+export default function Step2PanelDesign() {
   const navigate = useNavigate();
-  const {
-    wallWidth,
-    setWallWidth,
-    wallHeight,
-    setWallHeight,
-    heightOption,
-    setHeightOption,
-    rows,
-    setRows,
-    columns,
-    setColumns,
-    totalPrice,
-    setTotalPrice,
-    totalMetre,
-    setTotalMetre,
-    setPanelType,
-  } = useContext(DesignContext);
+  const { walls } = useDesign();
+  const pricePerMetre = 7;
 
-  const moldingThickness = 7.5;
-
-  const handlePanelTypeChange = (type) => {
-    setPanelType(type);
+  const getHeightMultiplier = (opt) => {
+    if (opt === "three") return 0.75;
+    if (opt === "half") return 0.5;
+    return 1;
   };
 
-  const getEffectiveHeight = () => {
-    if (heightOption === "half") return wallHeight * 0.5;
-    if (heightOption === "threeQuarter") return wallHeight * 0.75;
-    return wallHeight;
+  const parseNum = (val) =>
+    typeof val === "string" ? parseFloat(val.replace(",", ".")) : val;
+
+  const calculateWallLength = (wall) => {
+    const factor = wall.unit === "inch" ? 2.54 : 1;
+    const width = parseNum(wall.width) || 0;
+    const height = parseNum(wall.height) || 0;
+    const usableHeight = height * factor * getHeightMultiplier(wall.heightOption);
+    const usableWidth = width * factor;
+    const hLines = wall.rows + 1;
+    const vLines = wall.columns + 1;
+    return (hLines * usableWidth + vLines * usableHeight) / 100;
   };
 
-  const effectiveHeight = getEffectiveHeight();
-  const bottomStartY = wallHeight - effectiveHeight;
+  const totalLength = walls.reduce((sum, wall) => sum + calculateWallLength(wall), 0);
+  const totalPrice = totalLength * pricePerMetre;
 
-  const panelWidth = Math.max((wallWidth - (columns + 1) * moldingThickness) / columns, 0);
-  const panelHeight = Math.max((effectiveHeight - (rows + 1) * moldingThickness) / rows, 0);
-
-  useEffect(() => {
-    const heightFactor =
-      heightOption === "half"
-        ? 0.5
-        : heightOption === "threeQuarter"
-        ? 0.75
-        : 1;
-    const totalVerticalLength = (columns + 1) * wallHeight * heightFactor;
-    const totalHorizontalLength = (rows + 1) * wallWidth;
-    const metre = (totalVerticalLength + totalHorizontalLength) / 100;
-
-    if (typeof setTotalMetre === "function") {
-      setTotalMetre(metre);
-    }
-    if (typeof setTotalPrice === "function") {
-      setTotalPrice(metre * 7);
-    }
-  }, [wallWidth, wallHeight, rows, columns, heightOption]);
+  const handleBack = () => navigate("/step1");
+  const handleNext = () => navigate("/step3");
 
   return (
-    <div className="flex flex-col md:flex-row p-8 space-x-0 md:space-x-8 space-y-8 md:space-y-0">
-      <div className="w-full md:w-3/5">
-        <div className="border rounded bg-white p-4 shadow">
-          <WallPreview />
-        </div>
+    <div className="min-h-screen bg-[#EAF0F5] px-4 py-6 flex flex-col items-center">
+      <h1 className="text-2xl font-semibold text-gray-800 mb-8">Your Panel Summary</h1>
+
+      <div className="w-full max-w-6xl space-y-10">
+        {walls.map((wall, index) => {
+          const wallLength = calculateWallLength(wall);
+          const price = wallLength * pricePerMetre;
+
+          return (
+            <div
+              key={wall.id}
+              className="flex flex-col md:flex-row bg-white rounded-2xl shadow-lg overflow-hidden"
+            >
+              {/* Left - Wall Preview */}
+              <div className="md:w-[70%] w-full p-4 relative">
+                <WallPreview wall={wall} />
+                <div className="absolute top-4 left-4 bg-emerald-500 text-white px-4 py-1 rounded-full text-sm shadow">
+                  WALL {index + 1}
+                </div>
+              </div>
+
+              {/* Right - Info Boxes */}
+              <div className="md:w-[30%] w-full p-4 flex flex-col gap-4 justify-center">
+                {/* Width x Height */}
+                <div className="flex items-center gap-3 bg-gray-50 rounded shadow p-4">
+                  <FaExpandArrowsAlt className="text-emerald-600 text-lg" />
+                  <div>
+                    <div className="text-xs text-gray-500">Dimensions</div>
+                    <div className="font-semibold text-gray-700">
+                      {wall.width} × {wall.height} {wall.unit}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rows x Columns */}
+                <div className="flex items-center gap-3 bg-gray-50 rounded shadow p-4">
+                  <FaThLarge className="text-emerald-600 text-lg" />
+                  <div>
+                    <div className="text-xs text-gray-500">Grid</div>
+                    <div className="font-semibold text-gray-700">
+                      {wall.rows} Rows × {wall.columns} Columns
+                    </div>
+                  </div>
+                </div>
+
+                {/* Total Length */}
+                <div className="flex items-center gap-3 bg-gray-50 rounded shadow p-4">
+                  <FaRulerCombined className="text-emerald-600 text-lg" />
+                  <div>
+                    <div className="text-xs text-gray-500">Total Length</div>
+                    <div className="font-semibold text-gray-700">
+                      {wallLength.toFixed(2)} m
+                    </div>
+                  </div>
+                </div>
+
+                {/* Price */}
+                <div className="flex items-center gap-3 bg-gray-50 rounded shadow p-4">
+                  <FaMoneyBillWave className="text-emerald-600 text-lg" />
+                  <div>
+                    <div className="text-xs text-gray-500">Estimated Price</div>
+                    <div className="font-semibold text-gray-700">${price.toFixed(2)}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      <div className="w-full md:w-2/5 space-y-6">
-        <h2 className="text-xl font-bold">Step 2: Create your panel design</h2>
+      {/* Total Info */}
+      <div className="bg-white mt-10 p-6 rounded-xl shadow max-w-5xl w-full text-right text-gray-800">
+        <p>Total Length: <strong>{totalLength.toFixed(2)} m</strong></p>
+        <p>Total Price: <strong>${totalPrice.toFixed(2)}</strong></p>
+      </div>
 
-        <div className="space-y-2">
-          <label className="font-semibold">Height</label>
-          <div className="flex space-x-2">
-            {["full", "threeQuarter", "half"].map((option) => (
-              <button
-                key={option}
-                onClick={() => {
-                  setHeightOption(option);
-                  handlePanelTypeChange(
-                    option === "full"
-                      ? "Full"
-                      : option === "threeQuarter"
-                      ? "Three Quarter"
-                      : "Half"
-                  );
-                }}
-                className={`px-4 py-2 border rounded ${
-                  heightOption === option
-                    ? "bg-teal-700 text-white"
-                    : "bg-white text-black"
-                }`}
-              >
-                {option.charAt(0).toUpperCase() +
-                  option.slice(1).replace("Quarter", " Quarter")}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <label className="font-semibold">Rows</label>
-            <div className="flex space-x-2 items-center">
-              <button
-                onClick={() => setRows((prev) => Math.max(prev - 1, 1))}
-                className="bg-gray-200 px-3 py-1 rounded"
-              >
-                −
-              </button>
-              <span>{rows}</span>
-              <button
-                onClick={() => setRows((prev) => prev + 1)}
-                className="bg-gray-200 px-3 py-1 rounded"
-              >
-                +
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <label className="font-semibold">Columns</label>
-            <div className="flex space-x-2 items-center">
-              <button
-                onClick={() => setColumns((prev) => Math.max(prev - 1, 1))}
-                className="bg-gray-200 px-3 py-1 rounded"
-              >
-                −
-              </button>
-              <span>{columns}</span>
-              <button
-                onClick={() => setColumns((prev) => prev + 1)}
-                className="bg-gray-200 px-3 py-1 rounded"
-              >
-                +
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="font-semibold">Wall Width (cm)</label>
-            <input
-              type="number"
-              value={wallWidth}
-              onChange={(e) => setWallWidth(Number(e.target.value))}
-              className="border p-2 w-full rounded"
-            />
-          </div>
-          <div>
-            <label className="font-semibold">Wall Height (cm)</label>
-            <input
-              type="number"
-              value={wallHeight}
-              onChange={(e) => setWallHeight(Number(e.target.value))}
-              className="border p-2 w-full rounded"
-            />
-          </div>
-        </div>
-
-        <div className="mt-4 p-4 border rounded bg-gray-100 text-sm">
-          <p>
-            Total Length: <strong>{(totalMetre || 0).toFixed(2)} m</strong>
-          </p>
-          <p>
-            Total Price: <strong>${(totalPrice || 0).toFixed(2)}</strong>
-          </p>
-        </div>
-
-        <div className="flex justify-between mt-6">
-          <button
-            onClick={() => navigate("/")}
-            className="bg-gray-300 px-6 py-2 rounded hover:bg-gray-400"
-          >
-            Previous
-          </button>
-          <button
-            onClick={() => navigate("/step3")}
-            className="bg-teal-700 text-white px-6 py-2 rounded hover:bg-teal-800"
-          >
-            Next
-          </button>
-        </div>
+      {/* Buttons */}
+      <div className="mt-10 flex gap-4">
+        <button
+          onClick={handleBack}
+          className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-full transition"
+        >
+          Back
+        </button>
+        <button
+          onClick={handleNext}
+          className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-full transition"
+        >
+          Next
+        </button>
       </div>
     </div>
   );
 }
-
-export default Step2Design;

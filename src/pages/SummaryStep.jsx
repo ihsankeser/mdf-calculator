@@ -1,6 +1,10 @@
+// src/pages/SummaryStep.jsx
+
 import React, { useContext, useState } from "react";
 import DesignContext from "../contexts/DesignContext";
-import { createShopifyProduct } from "../utils/createShopifyProduct";
+import createShopifyProduct from "../utils/createShopifyProduct";
+
+
 import { useNavigate } from "react-router-dom";
 
 export default function SummaryStep() {
@@ -14,6 +18,9 @@ export default function SummaryStep() {
     totalMetre,
     productType,
     panelType,
+    isLoggedIn,
+    customerName,
+    customerId,
   } = useContext(DesignContext);
 
   const [submitted, setSubmitted] = useState(false);
@@ -22,9 +29,8 @@ export default function SummaryStep() {
   const finalPrice = productType === "digital" ? 15 : Number(totalPrice.toFixed(2));
 
   const handleCreateProduct = async () => {
-    // Ürün verisi
     const productData = {
-      title: `Custom Wall Design - ${wallWidth}x${wallHeight}`,
+      title: `Custom Wall Design for ${customerName || "Guest"} - ${wallWidth}x${wallHeight}`,
       body_html: `
         <h2 style="font-size: 16px; font-weight: bold;">🧱 Duvar Tasarımı Özeti</h2>
         <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
@@ -50,10 +56,10 @@ export default function SummaryStep() {
 
     try {
       const result = await createShopifyProduct(productData);
-      console.log("Shopify Ürün Oluşturuldu:", result);
+      console.log("✅ Shopify Ürün Oluşturuldu:", result);
       setSubmitted(true);
     } catch (error) {
-      console.error("Ürün oluşturulamadı:", error);
+      console.error("❌ Ürün oluşturulamadı:", error);
       alert("Ürün oluşturulamadı. Lütfen tekrar deneyin.");
     }
   };
@@ -114,12 +120,22 @@ export default function SummaryStep() {
         >
           ← Geri
         </button>
-        <button
-          onClick={handleCreateProduct}
-          className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800"
-        >
-          Shopify’da Ürünü Oluştur
-        </button>
+
+        {isLoggedIn ? (
+          <button
+            onClick={handleCreateProduct}
+            className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800"
+          >
+            Shopify’da Ürünü Oluştur
+          </button>
+        ) : (
+          <a
+            href={`https://birdeco.com/account/login?return_to=${encodeURIComponent("https://birdeco.com/pages/new-mdf-calculator/step4")}`}
+            className="bg-teal-600 text-white px-6 py-2 rounded hover:bg-teal-700"
+          >
+            Login to continue
+          </a>
+        )}
       </div>
     </div>
   );
